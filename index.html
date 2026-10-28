@@ -96,6 +96,107 @@
             z-index: 2;
         }
 
+        #control_mode_switch {
+            display: flex;
+            gap: 8px;
+            padding: 10px;
+            border-bottom: 1px solid #444;
+        }
+
+        .control-mode-button {
+            position: relative;
+            z-index: 1;
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--site-brand-gold);
+            border-radius: 3px;
+            background: #222;
+            color: #f5f3ed;
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            background-color: #222;
+        }
+
+        .control-mode-button:hover {
+            background-color: #444;
+        }
+
+        .control-mode-button:active {
+            background-color: #b58b35;
+        }
+
+        .control-mode-button.is-active {
+            background-color: var(--site-brand-gold);
+            color: #111;
+        }
+
+        .control-mode-button:focus-visible {
+            outline: 2px solid #f5f3ed;
+            outline-offset: 2px;
+        }
+
+        #simple_tools_panel {
+            display: none;
+            padding: 0 10px 12px;
+        }
+
+        #sidebar_root.simple-controls #simple_tools_panel {
+            display: block;
+        }
+
+        #sidebar_root.simple-controls #potree_menu > h3:not(#menu_about),
+        #sidebar_root.simple-controls #potree_menu > h3:not(#menu_about) + div,
+        #sidebar_root.simple-controls #sidebar_content > div:not(#potree_menu):not(#simple_tools_panel) {
+            display: none !important;
+        }
+
+        #simple_tools_panel .simple-tool-section {
+            margin-top: 8px;
+        }
+
+        #simple_tools_panel .simple-tool-section > div:not(.divider) {
+            min-height: 34px;
+        }
+
+        #simple_point_budget_slider,
+        #simple_splat_quality_select {
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        #simple_measurement_tools img,
+        #simple_volume_clipping img,
+        #simple_cube_views img {
+            width: 32px;
+            height: 32px;
+            margin: 2px;
+            vertical-align: middle;
+        }
+
+        .simple-tool-button {
+            margin: 0;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .simple-tool-button:focus-visible {
+            outline: 2px solid var(--site-brand-gold);
+            outline-offset: 2px;
+        }
+
+        #simple_attribute_select {
+            box-sizing: border-box;
+            width: 100%;
+            padding: 6px;
+        }
+
+        #sidebar_root.simple-controls #menu_about_content {
+            display: block !important;
+        }
+
         @media (max-width: 760px) {
             :root {
                 --site-header-height: 100px;
@@ -199,10 +300,157 @@
             }
         };
 
+        const syncSimpleAttributeSelect = () => {
+            const attributeSelect = document.getElementById("simple_attribute_select");
+            if (!attributeSelect || !pointcloud) {
+                return;
+            }
+
+            const hasIntensity = pointcloud.pcoGeometry.pointAttributes.attributes
+                .some(attribute => attribute.name === "intensity");
+            attributeSelect.disabled = false;
+            attributeSelect.querySelector('option[value="intensity gradient"]').disabled = !hasIntensity;
+            attributeSelect.value = pointcloud.material.activeAttributeName;
+        };
+
+        const initializeSimpleTools = () => {
+            const addSimpleToolButtons = (sourceSelector, filenames, targetSelector, labels) => {
+                const source = document.querySelector(sourceSelector);
+                const target = document.querySelector(targetSelector);
+                if (!source || !target) {
+                    throw new Error(`Could not initialize simple tools in ${sourceSelector}.`);
+                }
+                for (const [index, filename] of filenames.entries()) {
+                    const icon = Array.from(source.querySelectorAll("img"))
+                        .find(image => image.getAttribute("src").endsWith(filename));
+                    if (!icon) {
+                        throw new Error(`Could not find Potree tool icon: ${filename}`);
+                    }
+
+                    const button = document.createElement("button");
+                    button.type = "button";
+                    button.className = "simple-tool-button";
+                    button.setAttribute("aria-label", labels[index]);
+                    button.title = labels[index];
+                    const image = icon.cloneNode();
+                    image.alt = "";
+                    button.appendChild(image);
+                    button.addEventListener("click", () => icon.click());
+                    target.appendChild(button);
+                }
+            };
+
+            const pointBudgetContainer = document.getElementById("simple_point_budget");
+            const qualityContainer = document.getElementById("simple_splat_quality");
+            if (!pointBudgetContainer || !qualityContainer) {
+                throw new Error("Could not find Simple point-cloud control containers.");
+            }
+
+            let pointBudgetSlider = document.getElementById("simple_point_budget_slider");
+            let pointBudgetLabel = document.getElementById("simple_point_budget_label");
+            if (!pointBudgetSlider || !pointBudgetLabel) {
+                const listItem = document.createElement("li");
+                const label = document.createElement("label");
+                label.htmlFor = "simple_point_budget_slider";
+                label.append("Point budget: ");
+                pointBudgetLabel = document.createElement("span");
+                pointBudgetLabel.id = "simple_point_budget_label";
+                label.appendChild(pointBudgetLabel);
+                pointBudgetSlider = document.createElement("input");
+                pointBudgetSlider.id = "simple_point_budget_slider";
+                pointBudgetSlider.type = "range";
+                pointBudgetSlider.min = "100000";
+                pointBudgetSlider.max = "10000000";
+                pointBudgetSlider.step = "1000";
+                listItem.append(label, pointBudgetSlider);
+                pointBudgetContainer.appendChild(listItem);
+            }
+
+            let splatQualitySelect = document.getElementById("simple_splat_quality_select");
+            if (!splatQualitySelect) {
+                splatQualitySelect = document.createElement("select");
+                splatQualitySelect.id = "simple_splat_quality_select";
+                splatQualitySelect.setAttribute("aria-label", "Splat quality");
+                for (const [value, label] of [["standard", "Standard"], ["hq", "High Quality"]]) {
+                    const option = document.createElement("option");
+                    option.value = value;
+                    option.textContent = label;
+                    splatQualitySelect.appendChild(option);
+                }
+
+                const listItem = document.createElement("li");
+                listItem.appendChild(splatQualitySelect);
+                qualityContainer.appendChild(listItem);
+            }
+
+            pointBudgetSlider.value = viewer.getPointBudget();
+            pointBudgetLabel.textContent = Number(pointBudgetSlider.value).toLocaleString();
+            pointBudgetSlider.addEventListener("input", () => {
+                viewer.setPointBudget(Number(pointBudgetSlider.value));
+            });
+            viewer.addEventListener("point_budget_changed", () => {
+                pointBudgetSlider.value = viewer.getPointBudget();
+                pointBudgetLabel.textContent = Number(pointBudgetSlider.value).toLocaleString();
+            });
+
+            splatQualitySelect.value = viewer.useHQ ? "hq" : "standard";
+            splatQualitySelect.addEventListener("change", () => {
+                viewer.useHQ = splatQualitySelect.value === "hq";
+            });
+
+            addSimpleToolButtons("#tools", ["distance.svg", "height.svg"],
+                "#simple_measurement_tools", ["Distance Measurement", "Height Measurement"]);
+            addSimpleToolButtons("#clipping_tools", ["clip_volume.svg"],
+                "#simple_volume_clipping", ["Volume Clipping"]);
+            addSimpleToolButtons("#navigation", ["left.svg", "right.svg", "front.svg", "back.svg", "top.svg", "bottom.svg"],
+                "#simple_cube_views", ["Left View", "Right View", "Front View", "Back View", "Top View", "Bottom View"]);
+
+            viewer.navigationCube.visible = true;
+
+            const attributeSelect = document.getElementById("simple_attribute_select");
+            attributeSelect.addEventListener("change", () => {
+                if (pointcloud) {
+                    pointcloud.material.activeAttributeName = attributeSelect.value;
+                }
+            });
+
+            syncSimpleAttributeSelect();
+        };
+
+        document.addEventListener("click", event => {
+            const button = event.target instanceof Element
+                ? event.target.closest("[data-control-mode]")
+                : null;
+            const sidebar = button?.closest("#sidebar_root");
+            if (!button || !sidebar) {
+                return;
+            }
+
+            const isSimple = button.dataset.controlMode === "simple";
+            sidebar.classList.toggle("simple-controls", isSimple);
+            sidebar.querySelectorAll("[data-control-mode]").forEach(modeButton => {
+                const isActive = modeButton === button;
+                modeButton.classList.toggle("is-active", isActive);
+                modeButton.setAttribute("aria-pressed", String(isActive));
+            });
+
+            if (isSimple) {
+                const qualitySelect = document.getElementById("simple_splat_quality_select");
+                if (qualitySelect) {
+                    qualitySelect.value = viewer.useHQ ? "hq" : "standard";
+                }
+                syncSimpleAttributeSelect();
+            }
+            viewer.navigationCube.visible = true;
+        });
+
         viewer.loadGUI(() => {
             viewer.setLanguage("en");
             $("#menu_appearance").next().show();
             $("#menu_scene").next().show();
+
+            initializeSimpleTools();
+
             selectPointCloudInScene();
         });
 
@@ -214,6 +462,7 @@
             material.size = 1.5;
             material.pointSizeType = Potree.PointSizeType.FIXED;
             material.activeAttributeName = "rgba";
+            syncSimpleAttributeSelect();
             
             viewer.scene.addPointCloud(pointcloud);
             viewer.fitToScreen();

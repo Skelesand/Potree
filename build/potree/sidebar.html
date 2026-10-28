@@ -1,5 +1,9 @@
 
 <div id="sidebar_root" class="">
+	<div id="control_mode_switch" role="group" aria-label="Control mode">
+		<button type="button" class="control-mode-button" data-control-mode="simple" aria-pressed="false">Simple</button>
+		<button type="button" class="control-mode-button is-active" data-control-mode="advanced" aria-pressed="true">Advanced</button>
+	</div>
 	<div id="sidebar_header">
 		<div class="wassi_group_header">The Wassi Group</div>
 		<span id="potree_branding" class="potree_sidebar_brand">
@@ -13,7 +17,49 @@
 		</span>
 		<div id="potree_languages" style="font-family:arial;"></div>
 	</div>
-	<div> 
+	<div id="sidebar_content">
+		<div id="simple_tools_panel">
+			<div class="simple-tool-section">
+				<div class="divider"><span>Point Budget</span></div>
+				<ul id="simple_point_budget" class="pv-menu-list">
+					<li>
+						<label for="simple_point_budget_slider">Point budget: <span id="simple_point_budget_label"></span></label>
+						<input id="simple_point_budget_slider" type="range" min="100000" max="10000000" step="1000">
+					</li>
+				</ul>
+			</div>
+			<div class="simple-tool-section">
+				<div class="divider"><span>Splat Quality</span></div>
+				<ul id="simple_splat_quality" class="pv-menu-list">
+					<li>
+						<select id="simple_splat_quality_select" aria-label="Splat quality">
+							<option value="standard">Standard</option>
+							<option value="hq">High Quality</option>
+						</select>
+					</li>
+				</ul>
+			</div>
+			<div class="simple-tool-section">
+				<div class="divider"><span>Measurement</span></div>
+				<div id="simple_measurement_tools"></div>
+			</div>
+			<div class="simple-tool-section">
+				<div class="divider"><span>Volume Clipping</span></div>
+				<div id="simple_volume_clipping"></div>
+			</div>
+			<div class="simple-tool-section">
+				<div class="divider"><span>Cube Views</span></div>
+				<div id="simple_cube_views"></div>
+			</div>
+			<div class="simple-tool-section">
+				<div class="divider"><span>Attributes</span></div>
+				<select id="simple_attribute_select" aria-label="Point cloud attribute" disabled>
+					<option value="rgba">RGBA</option>
+					<option value="intensity gradient">Intensity Gradient</option>
+					<option value="elevation">Elevation</option>
+				</select>
+			</div>
+		</div>
 
 	<div id="potree_menu" class="accordion">
 
@@ -168,7 +214,7 @@
 		
 		<!-- ABOUT -->
 		<h3 id="menu_about"><span data-i18n="tb.about_opt"></span></h3>
-		<div>
+		<div id="menu_about_content">
 			<ul class="pv-menu-list">
 				<li><a href="http://potree.org" target="_blank">Potree</a> is a viewer for large point cloud / LIDAR data sets, developed at the Vienna University of Technology. 
 				<a href="https://github.com/potree/potree" target="_blank">(github)</a>
@@ -275,4 +321,3 @@ Thanks to all the companies and institutions funding Potree:
 	</div>
 	
 </div>
-

@@ -1,0 +1,26 @@
+To do list:
+
+Create a simple vs advanced tools toggle
+- Advanced tools:
+-- All tools included, full functionality
+-Simple tools:
+-- Point Budget
+-- Splat Quality
+-- Distance Measurement
+-- Height Measurement
+-- Volume Clipping
+-- Have nav cube always on
+-- Cube views
+-- Attributes
+--- RGBA
+--- Intensity Gradient
+--- Elevation
+
+Create save states/staging for presenting to clients
+
+Include 3 different job types to be displayed:
+- Residential
+- Industrial
+- Commercial
+
+Investigate speed/scroll in limitations
