@@ -160,9 +160,76 @@
         }
 
         #simple_point_budget_slider,
-        #simple_splat_quality_select {
+        #simple_splat_quality_options,
+        #simple_clip_task_options {
             box-sizing: border-box;
             width: 100%;
+        }
+
+        #simple_point_budget_slider {
+            height: 6px;
+            margin: 10px 0 14px;
+            border: 1px solid black;
+            border-radius: 3px;
+            appearance: none;
+            background: var(--color-1);
+            cursor: pointer;
+        }
+
+        #simple_point_budget_slider::-webkit-slider-thumb {
+            width: 14px;
+            height: 14px;
+            border: 1px solid black;
+            border-radius: 3px;
+            appearance: none;
+            background: #a6a9aa;
+        }
+
+        #simple_point_budget_slider::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border: 1px solid black;
+            border-radius: 3px;
+            background: #a6a9aa;
+        }
+
+        .simple-choice-group {
+            display: flex;
+            width: 100%;
+        }
+
+        .simple-choice-button {
+            flex: 1;
+            min-width: 0;
+            margin: 0;
+            padding: 6px 4px;
+            border: 1px solid black;
+            border-right: 0;
+            background: var(--bg-light-color);
+            color: var(--font-color);
+            font: inherit;
+            cursor: pointer;
+        }
+
+        .simple-choice-button:first-child {
+            border-radius: 4px 0 0 4px;
+        }
+
+        .simple-choice-button:last-child {
+            border-right: 1px solid black;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .simple-choice-button:hover,
+        .simple-choice-button.is-active {
+            background: var(--color-1);
+            color: #111;
+        }
+
+        .simple-choice-button:focus-visible,
+        .simple-delete-button:focus-visible {
+            outline: 2px solid var(--site-brand-gold);
+            outline-offset: 2px;
         }
 
         #simple_measurement_tools img,
@@ -187,14 +254,74 @@
             outline-offset: 2px;
         }
 
-        #simple_attribute_select {
-            box-sizing: border-box;
-            width: 100%;
-            padding: 6px;
+        .simple-scene-items {
+            display: grid;
+            gap: 5px;
+            margin: 6px 0 0;
         }
 
-        #sidebar_root.simple-controls #menu_about_content {
-            display: block !important;
+        .simple-scene-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+            padding: 5px 7px;
+            border: 1px solid var(--color-2);
+            border-radius: 3px;
+            background: var(--bg-light-color);
+        }
+
+        .simple-scene-item-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .simple-delete-button {
+            padding: 3px 7px;
+            border: 1px solid var(--color-1);
+            border-radius: 3px;
+            background: var(--bg-dark-color);
+            color: var(--font-color-2);
+            font: inherit;
+            cursor: pointer;
+        }
+
+        .simple-delete-button:hover {
+            background: #6b2929;
+        }
+
+        #simple_attribute_options {
+            display: grid;
+            gap: 5px;
+            margin: 0;
+            padding: 0;
+            border: 0;
+        }
+
+        .simple-attribute-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px;
+            border: 1px solid var(--color-2);
+            border-radius: 3px;
+            background: var(--bg-light-color);
+            cursor: pointer;
+        }
+
+        .simple-attribute-option:has(input:checked) {
+            border-color: var(--color-4);
+        }
+
+        .simple-attribute-option input {
+            accent-color: var(--color-4);
+        }
+
+        .simple-attribute-option:has(input:disabled) {
+            opacity: 0.55;
+            cursor: not-allowed;
         }
 
         @media (max-width: 760px) {
@@ -300,20 +427,35 @@
             }
         };
 
-        const syncSimpleAttributeSelect = () => {
-            const attributeSelect = document.getElementById("simple_attribute_select");
-            if (!attributeSelect || !pointcloud) {
+        const syncSimpleAttributeOptions = () => {
+            const attributeOptions = document.getElementById("simple_attribute_options");
+            if (!attributeOptions) {
+                return;
+            }
+
+            attributeOptions.disabled = !pointcloud;
+            if (!pointcloud) {
                 return;
             }
 
             const hasIntensity = pointcloud.pcoGeometry.pointAttributes.attributes
                 .some(attribute => attribute.name === "intensity");
-            attributeSelect.disabled = false;
-            attributeSelect.querySelector('option[value="intensity gradient"]').disabled = !hasIntensity;
-            attributeSelect.value = pointcloud.material.activeAttributeName;
+            const intensityOption = attributeOptions.querySelector('input[value="intensity gradient"]');
+            intensityOption.disabled = !hasIntensity;
+            attributeOptions.querySelectorAll('input[name="simple_attribute"]').forEach(option => {
+                option.checked = option.value === pointcloud.material.activeAttributeName;
+            });
         };
 
         const initializeSimpleTools = () => {
+            const setSimpleChoice = (group, value) => {
+                group.querySelectorAll("button[data-value]").forEach(button => {
+                    const isActive = button.dataset.value === value;
+                    button.classList.toggle("is-active", isActive);
+                    button.setAttribute("aria-pressed", String(isActive));
+                });
+            };
+
             const addSimpleToolButtons = (sourceSelector, filenames, targetSelector, labels) => {
                 const source = document.querySelector(sourceSelector);
                 const target = document.querySelector(targetSelector);
@@ -341,8 +483,7 @@
             };
 
             const pointBudgetContainer = document.getElementById("simple_point_budget");
-            const qualityContainer = document.getElementById("simple_splat_quality");
-            if (!pointBudgetContainer || !qualityContainer) {
+            if (!pointBudgetContainer) {
                 throw new Error("Could not find Simple point-cloud control containers.");
             }
 
@@ -366,21 +507,13 @@
                 pointBudgetContainer.appendChild(listItem);
             }
 
-            let splatQualitySelect = document.getElementById("simple_splat_quality_select");
-            if (!splatQualitySelect) {
-                splatQualitySelect = document.createElement("select");
-                splatQualitySelect.id = "simple_splat_quality_select";
-                splatQualitySelect.setAttribute("aria-label", "Splat quality");
-                for (const [value, label] of [["standard", "Standard"], ["hq", "High Quality"]]) {
-                    const option = document.createElement("option");
-                    option.value = value;
-                    option.textContent = label;
-                    splatQualitySelect.appendChild(option);
-                }
-
-                const listItem = document.createElement("li");
-                listItem.appendChild(splatQualitySelect);
-                qualityContainer.appendChild(listItem);
+            const qualityOptions = document.getElementById("simple_splat_quality_options");
+            const clipTaskOptions = document.getElementById("simple_clip_task_options");
+            const measurementList = document.getElementById("simple_measurement_list");
+            const clipVolumeList = document.getElementById("simple_clip_volume_list");
+            const attributeOptions = document.getElementById("simple_attribute_options");
+            if (!qualityOptions || !clipTaskOptions || !measurementList || !clipVolumeList || !attributeOptions) {
+                throw new Error("Could not find Simple tool option and item containers.");
             }
 
             pointBudgetSlider.value = viewer.getPointBudget();
@@ -393,10 +526,28 @@
                 pointBudgetLabel.textContent = Number(pointBudgetSlider.value).toLocaleString();
             });
 
-            splatQualitySelect.value = viewer.useHQ ? "hq" : "standard";
-            splatQualitySelect.addEventListener("change", () => {
-                viewer.useHQ = splatQualitySelect.value === "hq";
+            setSimpleChoice(qualityOptions, viewer.useHQ ? "hq" : "standard");
+            qualityOptions.querySelectorAll("button[data-value]").forEach(button => {
+                button.addEventListener("click", () => {
+                    viewer.useHQ = button.dataset.value === "hq";
+                    setSimpleChoice(qualityOptions, button.dataset.value);
+                });
             });
+
+            const syncClipTask = () => {
+                const taskName = Object.keys(Potree.ClipTask)
+                    .find(name => Potree.ClipTask[name] === viewer.clipTask);
+                if (taskName) {
+                    setSimpleChoice(clipTaskOptions, taskName);
+                }
+            };
+            clipTaskOptions.querySelectorAll("button[data-value]").forEach(button => {
+                button.addEventListener("click", () => {
+                    viewer.setClipTask(Potree.ClipTask[button.dataset.value]);
+                });
+            });
+            viewer.addEventListener("cliptask_changed", syncClipTask);
+            syncClipTask();
 
             addSimpleToolButtons("#tools", ["distance.svg", "height.svg"],
                 "#simple_measurement_tools", ["Distance Measurement", "Height Measurement"]);
@@ -407,14 +558,61 @@
 
             viewer.navigationCube.visible = true;
 
-            const attributeSelect = document.getElementById("simple_attribute_select");
-            attributeSelect.addEventListener("change", () => {
+            attributeOptions.addEventListener("change", event => {
+                const option = event.target;
+                if (!(option instanceof HTMLInputElement) || option.name !== "simple_attribute") {
+                    return;
+                }
                 if (pointcloud) {
-                    pointcloud.material.activeAttributeName = attributeSelect.value;
+                    pointcloud.material.activeAttributeName = option.value;
                 }
             });
 
-            syncSimpleAttributeSelect();
+            const addSceneItem = (container, object, category, remove) => {
+                const row = document.createElement("div");
+                row.className = "simple-scene-item";
+                const name = document.createElement("span");
+                name.className = "simple-scene-item-name";
+                name.textContent = object.name || object.constructor.name;
+                const deleteButton = document.createElement("button");
+                deleteButton.type = "button";
+                deleteButton.className = "simple-delete-button";
+                deleteButton.textContent = "Delete";
+                deleteButton.setAttribute("aria-label", `Delete ${category}: ${name.textContent}`);
+                deleteButton.addEventListener("click", () => remove(object));
+                row.append(name, deleteButton);
+                container.appendChild(row);
+            };
+            const renderSimpleSceneItems = () => {
+                measurementList.replaceChildren();
+                clipVolumeList.replaceChildren();
+
+                const measurements = viewer.scene.measurements;
+                if (measurements.length === 0) {
+                    measurementList.textContent = "No measurements";
+                } else {
+                    measurements.forEach(measurement => {
+                        addSceneItem(measurementList, measurement, "measurement",
+                            item => viewer.scene.removeMeasurement(item));
+                    });
+                }
+
+                const clipVolumes = viewer.scene.volumes.filter(volume => volume.clip);
+                if (clipVolumes.length === 0) {
+                    clipVolumeList.textContent = "No clipping boxes";
+                } else {
+                    clipVolumes.forEach(volume => {
+                        addSceneItem(clipVolumeList, volume, "clipping box",
+                            item => viewer.scene.removeVolume(item));
+                    });
+                }
+            };
+            viewer.scene.addEventListener("measurement_added", renderSimpleSceneItems);
+            viewer.scene.addEventListener("measurement_removed", renderSimpleSceneItems);
+            viewer.scene.addEventListener("volume_added", renderSimpleSceneItems);
+            viewer.scene.addEventListener("volume_removed", renderSimpleSceneItems);
+            renderSimpleSceneItems();
+            syncSimpleAttributeOptions();
         };
 
         document.addEventListener("click", event => {
@@ -435,11 +633,15 @@
             });
 
             if (isSimple) {
-                const qualitySelect = document.getElementById("simple_splat_quality_select");
-                if (qualitySelect) {
-                    qualitySelect.value = viewer.useHQ ? "hq" : "standard";
+                const qualityOptions = document.getElementById("simple_splat_quality_options");
+                if (qualityOptions) {
+                    qualityOptions.querySelectorAll("button[data-value]").forEach(qualityButton => {
+                        const isActive = qualityButton.dataset.value === (viewer.useHQ ? "hq" : "standard");
+                        qualityButton.classList.toggle("is-active", isActive);
+                        qualityButton.setAttribute("aria-pressed", String(isActive));
+                    });
                 }
-                syncSimpleAttributeSelect();
+                syncSimpleAttributeOptions();
             }
             viewer.navigationCube.visible = true;
         });
@@ -462,7 +664,7 @@
             material.size = 1.5;
             material.pointSizeType = Potree.PointSizeType.FIXED;
             material.activeAttributeName = "rgba";
-            syncSimpleAttributeSelect();
+            syncSimpleAttributeOptions();
             
             viewer.scene.addPointCloud(pointcloud);
             viewer.fitToScreen();
